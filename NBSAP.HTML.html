@@ -1,0 +1,1981 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBSAP Integrated Monitoring & Compliance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f2744 100%);
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #38bdf8;
+        }
+
+        .nav-item.active {
+            background: rgba(56,189,248,0.15);
+            border-left-color: #38bdf8;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+        }
+
+        .data-source-card {
+            border-left: 4px solid;
+        }
+
+        .data-source-card.green { border-left-color: #16a34a; }
+        .data-source-card.blue { border-left-color: #2563eb; }
+        .data-source-card.orange { border-left-color: #f97316; }
+        .data-source-card.purple { border-left-color: #9333ea; }
+        .data-source-card.cyan { border-left-color: #0891b2; }
+
+        .workflow-step {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 20px;
+        }
+
+        .workflow-step:last-child::after {
+            display: none;
+        }
+
+        .workflow-step:hover {
+            transform: scale(1.05);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active { background: #22c55e; }
+        .status-warning { background: #f59e0b; }
+        .status-error { background: #ef4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .data-flow-line {
+            stroke-dasharray: 5,5;
+            animation: flow 1s linear infinite;
+        }
+
+        @keyframes flow {
+            to { stroke-dashoffset: -10; }
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-bar {
+            transition: width 1s ease;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .metric-card.green {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+        }
+
+        .metric-card.blue {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .metric-card.orange {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+            z-index: 0;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .indicator-tier {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .tier-headline { background: #dcfce7; color: #166534; }
+        .tier-component { background: #dbeafe; color: #1e40af; }
+        .tier-binary { background: #f3e8ff; color: #6b21a8; }
+
+        .org-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .org-rema { background: #dbeafe; color: #1e40af; }
+        .org-rdb { background: #dcfce7; color: #166534; }
+        .org-rfa { background: #fef3c7; color: #92400e; }
+        .org-district { background: #fed7aa; color: #9a3412; }
+        .org-ministry { background: #e0e7ff; color: #3730a3; }
+        .org-community { background: #fce7f3; color: #9d174d; }
+        .org-private { background: #f3e8ff; color: #6b21a8; }
+        .org-research { background: #e0f2fe; color: #0369a1; }
+        .org-ngo { background: #fef9c3; color: #854d0e; }
+
+        .modal-overlay {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar w-64 min-h-screen fixed left-0 top-0 z-50">
+        <div class="p-6 border-b border-blue-900">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-leaf text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-lg">NBSAP</h1>
+                    <p class="text-sky-300 text-xs">Monitoring System</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="py-4">
+            <a href="#" onclick="switchTab('dashboard')" class="nav-item active flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-chart-line w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" onclick="switchTab('indicators')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-list-check w-5"></i>
+                <span>All 22 Indicators</span>
+            </a>
+            <a href="#" onclick="switchTab('data-sources')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-database w-5"></i>
+                <span>Data Sources</span>
+            </a>
+            <a href="#" onclick="switchTab('workflow')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-arrow-right-arrow-left w-5"></i>
+                <span>Workflow</span>
+            </a>
+            <a href="#" onclick="switchTab('reports')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-file-contract w-5"></i>
+                <span>Reports</span>
+            </a>
+            <a href="#" onclick="switchTab('compliance')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-clipboard-check w-5"></i>
+                <span>Compliance</span>
+            </a>
+            <a href="#" onclick="switchTab('stakeholders')" class="nav-item flex items-center gap-3 px-6 py-3 text-sky-100">
+                <i class="fa-solid fa-users w-5"></i>
+                <span>Stakeholders</span>
+            </a>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-900">
+            <div class="bg-blue-900/50 rounded-lg p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="status-indicator status-active"></div>
+                    <span class="text-sky-200 text-sm">System Online</span>
+                </div>
+                <p class="text-sky-400 text-xs">Last sync: 2 minutes ago</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 flex-1 p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800" id="page-title">Monitoring Dashboard</h2>
+                <p class="text-gray-500">National Biodiversity Strategy & Action Plan 2025-2030</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="relative p-2 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-gear text-xl"></i>
+                </button>
+                <button onclick="exportIndicators()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Export Indicators</span>
+                </button>
+                <div class="flex items-center gap-3 pl-4 border-l">
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-700">Admin User</p>
+                        <p class="text-xs text-gray-500">REMA Coordinator</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                        AU
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard" class="tab-content active">
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="card metric-card p-6 text-white">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sky-100 text-sm">Total Targets</p>
+                            <h3 class="text-3xl font-bold mt-1">22</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-bullseye text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="bg-white/20 px-2 py-1 rounded">70% On Track</span>
+                    </div>
+                </div>
+
+                <div class="card metric-card green p-6 text-white">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-green-100 text-sm">Data Submissions</p>
+                            <h3 class="text-3xl font-bold mt-1">1,248</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-database text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        <span>12% from last month</span>
+                    </div>
+                </div>
+
+                <div class="card metric-card blue p-6 text-white">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-blue-100 text-sm">Active Districts</p>
+                            <h3 class="text-3xl font-bold mt-1">18/20</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-map-location-dot text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-2 mt-2">
+                        <div class="bg-white h-2 rounded-full progress-bar" style="width: 90%"></div>
+                    </div>
+                </div>
+
+                <div class="card metric-card orange p-6 text-white">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-orange-100 text-sm">Compliance Issues</p>
+                            <h3 class="text-3xl font-bold mt-1">5</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="bg-white/20 px-2 py-1 rounded">Requires Attention</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Data Flow Visualization -->
+                <div class="card lg:col-span-2 p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-network-wired text-sky-600"></i>
+                        Integrated Data Flow
+                    </h3>
+                    <div class="relative bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-6 h-80">
+                        <!-- Central Dashboard -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-lg p-4 z-10 border-2 border-sky-500">
+                            <div class="text-center">
+                                <i class="fa-solid fa-desktop text-3xl text-sky-600 mb-2"></i>
+                                <p class="text-sm font-semibold text-gray-700">NBSAP Dashboard</p>
+                                <div class="flex gap-1 justify-center mt-2">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                    <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Sources Around -->
+                        <div class="absolute top-4 left-4 bg-white rounded-lg shadow p-3 data-source-card green">
+                            <i class="fa-solid fa-landmark text-green-600"></i>
+                            <p class="text-xs font-semibold">Ministries</p>
+                        </div>
+
+                        <div class="absolute top-4 right-4 bg-white rounded-lg shadow p-3 data-source-card blue">
+                            <i class="fa-solid fa-chart-column text-blue-600"></i>
+                            <p class="text-xs font-semibold">NSO</p>
+                        </div>
+
+                        <div class="absolute bottom-4 left-4 bg-white rounded-lg shadow p-3 data-source-card purple">
+                            <i class="fa-solid fa-microscope text-purple-600"></i>
+                            <p class="text-xs font-semibold">Research</p>
+                        </div>
+
+                        <div class="absolute bottom-4 right-4 bg-white rounded-lg shadow p-3 data-source-card orange">
+                            <i class="fa-solid fa-users text-orange-600"></i>
+                            <p class="text-xs font-semibold">Districts</p>
+                        </div>
+
+                        <!-- Connection Lines (SVG) -->
+                        <svg class="absolute inset-0 w-full h-full" style="z-index: 0;">
+                            <line x1="15%" y1="15%" x2="50%" y2="50%" stroke="#38bdf8" stroke-width="2" class="data-flow-line"/>
+                            <line x1="85%" y1="15%" x2="50%" y2="50%" stroke="#38bdf8" stroke-width="2" class="data-flow-line"/>
+                            <line x1="15%" y1="85%" x2="50%" y2="50%" stroke="#38bdf8" stroke-width="2" class="data-flow-line"/>
+                            <line x1="85%" y1="85%" x2="50%" y2="50%" stroke="#38bdf8" stroke-width="2" class="data-flow-line"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-sky-600"></i>
+                        Recent Activity
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 pb-3 border-b">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">MINAGRI submitted Q4 data</p>
+                                <p class="text-xs text-gray-500">2 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 pb-3 border-b">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-file-import text-blue-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">NSO validation completed</p>
+                                <p class="text-xs text-gray-500">5 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 pb-3 border-b">
+                            <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation text-orange-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">Compliance issue flagged</p>
+                                <p class="text-xs text-gray-500">1 day ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-flask text-purple-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">Research data uploaded</p>
+                                <p class="text-xs text-gray-500">2 days ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Progress -->
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-column text-sky-600"></i>
+                    NBSAP Target Progress (2025-2030)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Forest Cover</span>
+                            <span class="text-sm text-green-600 font-semibold">27%/30%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full progress-bar" style="width: 90%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Wetland Restoration</span>
+                            <span class="text-sm text-blue-600 font-semibold">600/1200 ha</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full progress-bar" style="width: 50%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Species Protection</span>
+                            <span class="text-sm text-purple-600 font-semibold">650/800</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-purple-500 h-2 rounded-full progress-bar" style="width: 81%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Community Participation</span>
+                            <span class="text-sm text-orange-600 font-semibold">60%/80%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-orange-500 h-2 rounded-full progress-bar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Water Quality</span>
+                            <span class="text-sm text-cyan-600 font-semibold">80%/90%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-cyan-500 h-2 rounded-full progress-bar" style="width: 89%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Policy Integration</span>
+                            <span class="text-sm text-pink-600 font-semibold">10/15 plans</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-pink-500 h-2 rounded-full progress-bar" style="width: 67%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL 22 INDICATORS TAB -->
+        <div id="indicators" class="tab-content">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-star text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-2xl">14</h3>
+                    <p class="text-sm text-gray-500">Headline Indicators</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-layer-group text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-2xl">6</h3>
+                    <p class="text-sm text-gray-500">Component Indicators</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-toggle-on text-2xl text-purple-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-2xl">2</h3>
+                    <p class="text-sm text-gray-500">Binary Indicators</p>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-building text-2xl text-orange-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-2xl">12</h3>
+                    <p class="text-sm text-gray-500">Responsible Organizations</p>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card p-6 mb-6">
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="search-indicator" placeholder="Search indicators..." class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-72">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="filter-btn active px-4 py-2 border rounded-lg text-sm font-semibold hover:bg-gray-50 bg-blue-600 text-white border-blue-600" onclick="filterTier('all')">All</button>
+                        <button class="filter-btn px-4 py-2 border rounded-lg text-sm font-semibold hover:bg-gray-50" onclick="filterTier('headline')">Headline</button>
+                        <button class="filter-btn px-4 py-2 border rounded-lg text-sm font-semibold hover:bg-gray-50" onclick="filterTier('component')">Component</button>
+                        <button class="filter-btn px-4 py-2 border rounded-lg text-sm font-semibold hover:bg-gray-50" onclick="filterTier('binary')">Binary</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicators Table -->
+            <div class="card p-6 overflow-hidden">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i>
+                    Complete List of 22 NBSAP Indicators with Responsible Organizations
+                </h3>
+                <div class="overflow-x-auto scrollbar-thin" style="max-height: 700px;">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-700">#</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Indicator</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Tier</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Target 2030</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Responsible Organization(s)</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Periodicity</th>
+                                <th class="p-4 text-sm font-semibold text-gray-700">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y" id="indicators-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Organization Summary -->
+            <div class="card p-6 mt-6">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-building text-blue-600"></i>
+                    Responsible Organizations Overview
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="org-summary">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA SOURCES TAB -->
+        <div id="data-sources" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Sector Ministries -->
+                <div class="card data-source-card green p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-landmark text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">Sector Ministries</h3>
+                            <p class="text-xs text-gray-500">Primary Data Providers</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-green-500"></i> Environment (MINEMA)</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-green-500"></i> Agriculture (MINAGRI)</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-green-500"></i> Forestry (RFA)</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-green-500"></i> Fisheries</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Status</span>
+                            <span class="text-green-600 font-semibold"><i class="fa-solid fa-check-circle"></i> Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NSO -->
+                <div class="card data-source-card blue p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-chart-column text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">National Statistics Office</h3>
+                            <p class="text-xs text-gray-500">Data Integration & Validation</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-500"></i> Data Integration</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-500"></i> Indicator Validation</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-500"></i> Baseline Alignment</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Status</span>
+                            <span class="text-green-600 font-semibold"><i class="fa-solid fa-check-circle"></i> Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Research Institutions -->
+                <div class="card data-source-card purple p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-microscope text-purple-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">Research Institutions</h3>
+                            <p class="text-xs text-gray-500">Scientific Studies</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-purple-500"></i> Biodiversity Studies</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-purple-500"></i> Species Monitoring</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-purple-500"></i> Ecosystem Analysis</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Status</span>
+                            <span class="text-green-600 font-semibold"><i class="fa-solid fa-check-circle"></i> Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coordination Unit -->
+                <div class="card data-source-card cyan p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-building-columns text-cyan-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">Coordination Unit</h3>
+                            <p class="text-xs text-gray-500">REMA Biodiversity M&E</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-cyan-500"></i> Data Consolidation</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-cyan-500"></i> Analysis & QA</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-cyan-500"></i> Report Generation</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Status</span>
+                            <span class="text-green-600 font-semibold"><i class="fa-solid fa-check-circle"></i> Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Districts -->
+                <div class="card data-source-card orange p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-users text-orange-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">Districts & Local Authorities</h3>
+                            <p class="text-xs text-gray-500">Field Monitoring</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-orange-500"></i> District Reports</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-orange-500"></i> Field Monitoring</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-orange-500"></i> Community Data</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Status</span>
+                            <span class="text-yellow-600 font-semibold"><i class="fa-solid fa-circle-exclamation"></i> 18/20 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Reports -->
+                <div class="card data-source-card p-6" style="border-left-color: #1e40af;">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-earth-americas text-blue-800 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800">CBD & Global Reports</h3>
+                            <p class="text-xs text-gray-500">International Reporting</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-800"></i> CBD National Reports</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-800"></i> SDG Alignment</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-circle text-xs text-blue-800"></i> GBF Indicators</li>
+                    </ul>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Next Report</span>
+                            <span class="text-blue-800 font-semibold">Jun 2029</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Integration Status -->
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-link text-sky-600"></i>
+                    Data Integration Status
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Data Source</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Last Submission</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Records</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Validation</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b">
+                                <td class="py-3">MINEMA</td>
+                                <td class="py-3 text-gray-600">Mar 22, 2026</td>
+                                <td class="py-3">342</td>
+                                <td class="py-3"><span class="text-green-600"><i class="fa-solid fa-check"></i> Passed</span></td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Active</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3">MINAGRI</td>
+                                <td class="py-3 text-gray-600">Mar 23, 2026</td>
+                                <td class="py-3">528</td>
+                                <td class="py-3"><span class="text-green-600"><i class="fa-solid fa-check"></i> Passed</span></td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Active</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3">NSO</td>
+                                <td class="py-3 text-gray-600">Mar 20, 2026</td>
+                                <td class="py-3">1,248</td>
+                                <td class="py-3"><span class="text-yellow-600"><i class="fa-solid fa-clock"></i> Processing</span></td>
+                                <td class="py-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Validating</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3">Research Inst.</td>
+                                <td class="py-3 text-gray-600">Mar 18, 2026</td>
+                                <td class="py-3">156</td>
+                                <td class="py-3"><span class="text-green-600"><i class="fa-solid fa-check"></i> Passed</span></td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3">Districts (Avg)</td>
+                                <td class="py-3 text-gray-600">Mar 21, 2026</td>
+                                <td class="py-3">2,840</td>
+                                <td class="py-3"><span class="text-red-600"><i class="fa-solid fa-triangle-exclamation"></i> Issues</span></td>
+                                <td class="py-3"><span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">Review</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- WORKFLOW TAB -->
+        <div id="workflow" class="tab-content">
+            <div class="card p-8 mb-8">
+                <h3 class="font-bold text-gray-800 mb-6 text-center text-xl">Data Processing Workflow</h3>
+                <div class="flex flex-wrap justify-center items-center gap-4">
+                    <div class="workflow-step bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                        <i class="fa-solid fa-database text-2xl mb-2"></i>
+                        <p class="font-semibold">Data Collection</p>
+                        <p class="text-xs text-green-100 mt-1">Ministries & Districts</p>
+                    </div>
+                    <div class="workflow-step bg-stone-600 text-white px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                        <i class="fa-solid fa-filter text-2xl mb-2"></i>
+                        <p class="font-semibold">Validation</p>
+                        <p class="text-xs text-stone-300 mt-1">NSO Integration</p>
+                    </div>
+                    <div class="workflow-step bg-blue-600 text-white px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                        <i class="fa-solid fa-chart-pie text-2xl mb-2"></i>
+                        <p class="font-semibold">Reporting & Analysis</p>
+                        <p class="text-xs text-blue-100 mt-1">Coordination Unit</p>
+                    </div>
+                    <div class="workflow-step bg-orange-500 text-white px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                        <i class="fa-solid fa-rotate text-2xl mb-2"></i>
+                        <p class="font-semibold">Feedback & Compliance</p>
+                        <p class="text-xs text-orange-100 mt-1">Tracking & Review</p>
+                    </div>
+                    <div class="workflow-step bg-sky-600 text-white px-6 py-4 rounded-lg shadow-lg text-center min-w-[180px]">
+                        <i class="fa-solid fa-file-export text-2xl mb-2"></i>
+                        <p class="font-semibold">Global Reporting</p>
+                        <p class="text-xs text-sky-100 mt-1">CBD & SDG</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card p-6">
+                    <h3 class="font-bold text-gray-800 mb-4">Workflow Timeline</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i class="fa-solid fa-1 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-700">Q1: Data Submission</h4>
+                                <p class="text-sm text-gray-500">District and sector-level monitoring data submitted to REMA</p>
+                                <p class="text-xs text-gray-400 mt-1">Deadline: End of March, June, September, December</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-stone-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i class="fa-solid fa-2 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-700">Q2: Validation & Analysis</h4>
+                                <p class="text-sm text-gray-500">Data validation, quality checks, and indicator analysis</p>
+                                <p class="text-xs text-gray-400 mt-1">NSO validation and metadata review</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i class="fa-solid fa-3 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-700">Q3: Draft Reports</h4>
+                                <p class="text-sm text-gray-500">Preparation of draft progress reports and stakeholder consultations</p>
+                                <p class="text-xs text-gray-400 mt-1">Government, CSOs, private sector, communities</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i class="fa-solid fa-4 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-700">Q4: Final Reports</h4>
+                                <p class="text-sm text-gray-500">Submission of final reports to national leadership and CBD</p>
+                                <p class="text-xs text-gray-400 mt-1">Cabinet, Parliament, CBD Secretariat</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h3 class="font-bold text-gray-800 mb-4">Data Flow Architecture</h3>
+                    <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-4 h-80 relative">
+                        <svg class="absolute inset-0 w-full h-full">
+                            <path d="M 50 250 L 50 180" stroke="#f97316" stroke-width="2" stroke-dasharray="5,5" class="data-flow-line"/>
+                            <path d="M 50 150 L 200 100" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,5" class="data-flow-line"/>
+                            <path d="M 250 80 L 350 50" stroke="#1e40af" stroke-width="2" stroke-dasharray="5,5" class="data-flow-line"/>
+                            <path d="M 350 200 Q 200 250 50 200" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,5" class="data-flow-line" fill="none"/>
+                        </svg>
+                        
+                        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-orange-100 px-3 py-2 rounded text-xs font-semibold text-orange-700">
+                            <i class="fa-solid fa-users"></i> Community
+                        </div>
+                        <div class="absolute top-1/3 left-8 bg-blue-100 px-3 py-2 rounded text-xs font-semibold text-blue-700">
+                            <i class="fa-solid fa-building"></i> District
+                        </div>
+                        <div class="absolute top-1/4 left-1/2 transform -translate-x-1/2 bg-sky-100 px-3 py-2 rounded text-xs font-semibold text-sky-700">
+                            <i class="fa-solid fa-landmark"></i> National (REMA)
+                        </div>
+                        <div class="absolute top-8 right-8 bg-indigo-100 px-3 py-2 rounded text-xs font-semibold text-indigo-700">
+                            <i class="fa-solid fa-earth-americas"></i> Global (CBD)
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-4 text-center">Data flows upward; feedback and compliance tracking flows downward</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORTS TAB -->
+        <div id="reports" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-file-pdf text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">Annual Reports</h3>
+                    <p class="text-sm text-gray-500 mb-4">Comprehensive progress against 22 NBSAP targets</p>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+                        <i class="fa-solid fa-download mr-2"></i>Download 2025 Report
+                    </button>
+                </div>
+
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-chart-line text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">Quarterly Updates</h3>
+                    <p class="text-sm text-gray-500 mb-4">Operational updates on activities and expenditures</p>
+                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
+                        <i class="fa-solid fa-download mr-2"></i>Download Q4 2025
+                    </button>
+                </div>
+
+                <div class="card p-6 text-center">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-file-contract text-2xl text-purple-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800 mb-2">CBD National Report</h3>
+                    <p class="text-sm text-gray-500 mb-4">International reporting obligations</p>
+                    <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm">
+                        <i class="fa-solid fa-download mr-2"></i>Next: Jun 2029
+                    </button>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-4">Report Generation Status</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Report Type</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Period</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Status</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Due Date</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Annual NBSAP Report</td>
+                                <td class="py-3 text-gray-600">2025</td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Completed</span></td>
+                                <td class="py-3 text-gray-600">Mar 30, 2026</td>
+                                <td class="py-3"><button class="text-blue-600 hover:underline">View</button></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Q4 Operational Update</td>
+                                <td class="py-3 text-gray-600">Oct-Dec 2025</td>
+                                <td class="py-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">In Review</span></td>
+                                <td class="py-3 text-gray-600">Jan 15, 2026</td>
+                                <td class="py-3"><button class="text-blue-600 hover:underline">View</button></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Gender Monitoring Report</td>
+                                <td class="py-3 text-gray-600">2025</td>
+                                <td class="py-3"><span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Pending</span></td>
+                                <td class="py-3 text-gray-600">Apr 15, 2026</td>
+                                <td class="py-3"><button class="text-blue-600 hover:underline">Generate</button></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Mid-Term Evaluation</td>
+                                <td class="py-3 text-gray-600">2025-2027</td>
+                                <td class="py-3"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Scheduled</span></td>
+                                <td class="py-3 text-gray-600">Q3 2027</td>
+                                <td class="py-3"><button class="text-blue-600 hover:underline">Plan</button></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 font-medium">CBD National Report</td>
+                                <td class="py-3 text-gray-600">2025-2029</td>
+                                <td class="py-3"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Scheduled</span></td>
+                                <td class="py-3 text-gray-600">Jun 2029</td>
+                                <td class="py-3"><button class="text-blue-600 hover:underline">Plan</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPLIANCE TAB -->
+        <div id="compliance" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="card p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced text-sky-600"></i>
+                        Compliance Overview
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">EIA Compliance</span>
+                                <span class="font-semibold text-green-600">92%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full progress-bar" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Protected Area Regulations</span>
+                                <span class="font-semibold text-green-600">88%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full progress-bar" style="width: 88%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">ABS Rules Compliance</span>
+                                <span class="font-semibold text-yellow-600">75%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-yellow-500 h-2 rounded-full progress-bar" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Species Protection Laws</span>
+                                <span class="font-semibold text-red-600">68%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-red-500 h-2 rounded-full progress-bar" style="width: 68%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-orange-600"></i>
+                        Active Compliance Issues
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-semibold text-red-700">EIA Missing Documentation</p>
+                                    <p class="text-xs text-red-600 mt-1">District: Northern Province</p>
+                                </div>
+                                <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">High</span>
+                            </div>
+                        </div>
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-semibold text-orange-700">Late Data Submission</p>
+                                    <p class="text-xs text-orange-600 mt-1">District: 2 districts pending</p>
+                                </div>
+                                <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">Medium</span>
+                            </div>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-semibold text-yellow-700">Incomplete Indicator Data</p>
+                                    <p class="text-xs text-yellow-600 mt-1">Sector: Fisheries</p>
+                                </div>
+                                <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Low</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-4">Accountability Mechanisms</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <i class="fa-solid fa-clipboard-check text-3xl text-blue-600 mb-2"></i>
+                        <h4 class="font-semibold text-gray-700 text-sm">Regulatory Tracking</h4>
+                        <p class="text-xs text-gray-500 mt-1">REMA, RDB, Districts</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 text-center">
+                        <i class="fa-solid fa-coins text-3xl text-green-600 mb-2"></i>
+                        <h4 class="font-semibold text-gray-700 text-sm">Performance Incentives</h4>
+                        <p class="text-xs text-gray-500 mt-1">MINEMA, Finance</p>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4 text-center">
+                        <i class="fa-solid fa-comments text-3xl text-orange-600 mb-2"></i>
+                        <h4 class="font-semibold text-gray-700 text-sm">Grievance Channels</h4>
+                        <p class="text-xs text-gray-500 mt-1">REMA, Ombudsman</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4 text-center">
+                        <i class="fa-solid fa-eye text-3xl text-purple-600 mb-2"></i>
+                        <h4 class="font-semibold text-gray-700 text-sm">Transparency Safeguards</h4>
+                        <p class="text-xs text-gray-500 mt-1">REMA, NISR</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STAKEHOLDERS TAB -->
+        <div id="stakeholders" class="tab-content">
+            <div class="card p-6 mb-8">
+                <h3 class="font-bold text-gray-800 mb-4">Stakeholder Engagement Matrix</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Stakeholder</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Role</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Responsibilities</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Reporting Line</th>
+                                <th class="pb-3 text-sm font-semibold text-gray-600">Engagement Level</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">MINEMA/REMA</td>
+                                <td class="py-3 text-gray-600">Lead Agency</td>
+                                <td class="py-3 text-gray-600">Overall coordination, RBIS management</td>
+                                <td class="py-3 text-gray-600">Cabinet / CBD</td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">High</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Sector Ministries</td>
+                                <td class="py-3 text-gray-600">Data Providers</td>
+                                <td class="py-3 text-gray-600">Sectoral data collection, policy implementation</td>
+                                <td class="py-3 text-gray-600">Lead Ministry</td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">High</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">District Governments</td>
+                                <td class="py-3 text-gray-600">Local Coordination</td>
+                                <td class="py-3 text-gray-600">Local monitoring, community participation</td>
+                                <td class="py-3 text-gray-600">Lead Ministry</td>
+                                <td class="py-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Medium</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Local Communities</td>
+                                <td class="py-3 text-gray-600">Primary Data</td>
+                                <td class="py-3 text-gray-600">Biodiversity observations, indigenous knowledge</td>
+                                <td class="py-3 text-gray-600">District Authorities</td>
+                                <td class="py-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Medium</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Research Institutions</td>
+                                <td class="py-3 text-gray-600">Technical Support</td>
+                                <td class="py-3 text-gray-600">Indicator development, scientific validation</td>
+                                <td class="py-3 text-gray-600">Lead Ministry</td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">High</span></td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 font-medium">Private Sector</td>
+                                <td class="py-3 text-gray-600">Compliance</td>
+                                <td class="py-3 text-gray-600">Biodiversity impacts, green investments</td>
+                                <td class="py-3 text-gray-600">Regulatory Authorities</td>
+                                <td class="py-3"><span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Growing</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 font-medium">NGOs/Partners</td>
+                                <td class="py-3 text-gray-600">Capacity Building</td>
+                                <td class="py-3 text-gray-600">Technical support, resource mobilization</td>
+                                <td class="py-3 text-gray-600">Lead Ministry</td>
+                                <td class="py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">High</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="card p-6">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-users text-2xl text-green-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">National Level</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-green-500"></i> MINEMA/REMA</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-green-500"></i> Sector Ministries</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-green-500"></i> NISR</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-green-500"></i> Research Institutions</li>
+                    </ul>
+                </div>
+
+                <div class="card p-6">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-building text-2xl text-blue-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">District Level</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> District Environment Offices</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> Planning Units</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> Sector Authorities</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-500"></i> Local NGOs</li>
+                    </ul>
+                </div>
+
+                <div class="card p-6">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-hands-holding-circle text-2xl text-orange-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Community Level</h3>
+                    </div>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-orange-500"></i> Village Committees</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-orange-500"></i> CBOs</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-orange-500"></i> IPLCs</li>
+                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-orange-500"></i> Community Monitors</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Indicator Detail Modal -->
+    <div id="indicator-modal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800" id="modal-indicator-title">Indicator Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+            <div class="p-6" id="modal-content">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complete 22 NBSAP Indicators Data from Document Table 16
+        const indicators = [
+            {
+                id: 1,
+                name: "Forest Cover (%)",
+                definition: "Percentage of total land area under forest cover",
+                tier: "headline",
+                target: "30% of total land area",
+                baseline: "24%",
+                midterm: "27%",
+                final: "30%",
+                current: "26.5%",
+                progress: 72,
+                status: "on-track",
+                dataSource: "Remote sensing, National Forest Inventory",
+                periodicity: "Annual",
+                responsible: ["RFA", "District Environment Offices"],
+                orgColors: ["org-rfa", "org-district"],
+                kmGbf: "Target 2 (Restoration)",
+                nbsapTarget: "Target 1"
+            },
+            {
+                id: 2,
+                name: "Wetland Area Restored (ha)",
+                definition: "Total hectares of degraded wetlands restored",
+                tier: "headline",
+                target: "1,200 ha restored",
+                baseline: "0 ha",
+                midterm: "600 ha",
+                final: "1,200 ha",
+                current: "520 ha",
+                progress: 43,
+                status: "at-risk",
+                dataSource: "Field surveys, Community reports",
+                periodicity: "Annual",
+                responsible: ["REMA", "District Authorities", "CBOs"],
+                orgColors: ["org-rema", "org-district", "org-community"],
+                kmGbf: "Target 2 (Restoration)",
+                nbsapTarget: "Target 2"
+            },
+            {
+                id: 3,
+                name: "Protected Species Population Trends",
+                definition: "Population trends of selected threatened species",
+                tier: "headline",
+                target: "Population stable or increasing",
+                baseline: "500 individuals",
+                midterm: "650 individuals",
+                final: "800 individuals",
+                current: "610 individuals",
+                progress: 52,
+                status: "on-track",
+                dataSource: "Wildlife census, Ranger patrols, Citizen science",
+                periodicity: "Biannual",
+                responsible: ["RDB", "Conservation NGOs", "Communities"],
+                orgColors: ["org-rdb", "org-ngo", "org-community"],
+                kmGbf: "Target 4 (Species)",
+                nbsapTarget: "Target 3"
+            },
+            {
+                id: 4,
+                name: "Ecosystem Service Value (RWF)",
+                definition: "Economic value from ecosystem services",
+                tier: "component",
+                target: "RWF 15 billion",
+                baseline: "RWF 10 billion",
+                midterm: "RWF 12.5 billion",
+                final: "RWF 15 billion",
+                current: "RWF 11.8 billion",
+                progress: 60,
+                status: "on-track",
+                dataSource: "District reports, Enterprise data",
+                periodicity: "Annual",
+                responsible: ["District Authorities", "REMA"],
+                orgColors: ["org-district", "org-rema"],
+                kmGbf: "Target 14 (Mainstreaming)",
+                nbsapTarget: "Target 4"
+            },
+            {
+                id: 5,
+                name: "Indigenous Crop Varieties Maintained",
+                definition: "Total indigenous crop varieties conserved in situ/ex situ",
+                tier: "component",
+                target: "50 varieties",
+                baseline: "35 varieties",
+                midterm: "42 varieties",
+                final: "50 varieties",
+                current: "40 varieties",
+                progress: 55,
+                status: "on-track",
+                dataSource: "RAB reports, Research institutes",
+                periodicity: "Annual",
+                responsible: ["RAB", "Agricultural Research Institutes"],
+                orgColors: ["org-ministry", "org-research"],
+                kmGbf: "Target 13 (Genetic Diversity)",
+                nbsapTarget: "Target 5"
+            },
+            {
+                id: 6,
+                name: "% Protected Areas with Management Plans",
+                definition: "Proportion of protected areas with updated management plans",
+                tier: "binary",
+                target: "100% coverage",
+                baseline: "80%",
+                midterm: "90%",
+                final: "100%",
+                current: "88%",
+                progress: 80,
+                status: "on-track",
+                dataSource: "RDB reports, PA audits",
+                periodicity: "Annual",
+                responsible: ["RDB", "REMA"],
+                orgColors: ["org-rdb", "org-rema"],
+                kmGbf: "Target 3 (Protected Areas)",
+                nbsapTarget: "Target 6"
+            },
+            {
+                id: 7,
+                name: "Hectares of Forest and Wetland Restored",
+                definition: "Total hectares restored",
+                tier: "headline",
+                target: "2,500 ha",
+                baseline: "0 ha",
+                midterm: "1,250 ha",
+                final: "2,500 ha",
+                current: "1,100 ha",
+                progress: 44,
+                status: "at-risk",
+                dataSource: "Project reports, Field surveys",
+                periodicity: "Annual",
+                responsible: ["REMA", "District Authorities", "Communities"],
+                orgColors: ["org-rema", "org-district", "org-community"],
+                kmGbf: "Target 2 (Restoration)",
+                nbsapTarget: "Target 7"
+            },
+            {
+                id: 8,
+                name: "Sustainable Resource Use Initiatives",
+                definition: "Initiatives promoting sustainable harvesting",
+                tier: "component",
+                target: "50 initiatives",
+                baseline: "20 initiatives",
+                midterm: "35 initiatives",
+                final: "50 initiatives",
+                current: "32 initiatives",
+                progress: 53,
+                status: "on-track",
+                dataSource: "Community & Cooperative records",
+                periodicity: "Annual",
+                responsible: ["Local Governments", "Cooperatives", "NGOs"],
+                orgColors: ["org-district", "org-community", "org-ngo"],
+                kmGbf: "Target 10 (Sustainable Use)",
+                nbsapTarget: "Target 8"
+            },
+            {
+                id: 9,
+                name: "% Water Bodies Meeting Quality Standards",
+                definition: "Proportion of water bodies meeting national standards",
+                tier: "headline",
+                target: "90% compliance",
+                baseline: "65%",
+                midterm: "80%",
+                final: "90%",
+                current: "76%",
+                progress: 61,
+                status: "on-track",
+                dataSource: "WASAC, REMA water quality reports",
+                periodicity: "Biannual",
+                responsible: ["REMA", "WASAC"],
+                orgColors: ["org-rema", "org-ministry"],
+                kmGbf: "Target 6 (Water Quality)",
+                nbsapTarget: "Target 9"
+            },
+            {
+                id: 10,
+                name: "Carbon Sequestration (tons CO₂e)",
+                definition: "Total carbon sequestered in forests and wetlands",
+                tier: "component",
+                target: "500,000 tons CO₂e",
+                baseline: "350,000 tons",
+                midterm: "425,000 tons",
+                final: "500,000 tons",
+                current: "410,000 tons",
+                progress: 67,
+                status: "on-track",
+                dataSource: "Remote sensing, National inventories",
+                periodicity: "Annual",
+                responsible: ["RFA", "REMA"],
+                orgColors: ["org-rfa", "org-rema"],
+                kmGbf: "Target 8 (Climate Change)",
+                nbsapTarget: "Target 10"
+            },
+            {
+                id: 11,
+                name: "Restoration Project Monitoring Compliance (%)",
+                definition: "Proportion of restoration projects with completed monitoring reports",
+                tier: "headline",
+                target: "100%",
+                baseline: "50%",
+                midterm: "75%",
+                final: "100%",
+                current: "68%",
+                progress: 60,
+                status: "on-track",
+                dataSource: "Project M&E reports, Field audits",
+                periodicity: "Biannual",
+                responsible: ["REMA", "District Authorities", "CBOs"],
+                orgColors: ["org-rema", "org-district", "org-community"],
+                kmGbf: "Target 2 (Restoration)",
+                nbsapTarget: "Target 11"
+            },
+            {
+                id: 12,
+                name: "Community Participation in Biodiversity Monitoring (%)",
+                definition: "% of communities actively engaged in monitoring",
+                tier: "headline",
+                target: "80% participation",
+                baseline: "40%",
+                midterm: "60%",
+                final: "80%",
+                current: "55%",
+                progress: 56,
+                status: "on-track",
+                dataSource: "Community logs, Participatory M&E reports",
+                periodicity: "Annual",
+                responsible: ["District Authorities", "IPLCs", "CBOs"],
+                orgColors: ["org-district", "org-community", "org-community"],
+                kmGbf: "Target 22 (Participation)",
+                nbsapTarget: "Target 12"
+            },
+            {
+                id: 13,
+                name: "Revenue from Biodiversity-Friendly Livelihoods (RWF)",
+                definition: "Total revenue generated from conservation-linked livelihoods",
+                tier: "headline",
+                target: "RWF 5 billion",
+                baseline: "RWF 2 billion",
+                midterm: "RWF 3.5 billion",
+                final: "RWF 5 billion",
+                current: "RWF 3.1 billion",
+                progress: 58,
+                status: "on-track",
+                dataSource: "Cooperative/Enterprise reports, District records",
+                periodicity: "Annual",
+                responsible: ["District Authorities", "Cooperatives", "Private Sector"],
+                orgColors: ["org-district", "org-community", "org-private"],
+                kmGbf: "Target 13 (Benefit Sharing)",
+                nbsapTarget: "Target 13"
+            },
+            {
+                id: 14,
+                name: "Sector Plans Incorporating Biodiversity",
+                definition: "Plans integrating biodiversity into sectoral policies",
+                tier: "component",
+                target: "15 plans",
+                baseline: "5 plans",
+                midterm: "10 plans",
+                final: "15 plans",
+                current: "9 plans",
+                progress: 53,
+                status: "on-track",
+                dataSource: "Ministry & District reports",
+                periodicity: "Annual",
+                responsible: ["Sector Ministries", "LODA"],
+                orgColors: ["org-ministry", "org-ministry"],
+                kmGbf: "Target 14 (Mainstreaming)",
+                nbsapTarget: "Target 14"
+            },
+            {
+                id: 15,
+                name: "Private Sector Biodiversity Actions",
+                definition: "Number of private enterprises implementing biodiversity practices",
+                tier: "component",
+                target: "30 enterprises",
+                baseline: "10 enterprises",
+                midterm: "20 enterprises",
+                final: "30 enterprises",
+                current: "17 enterprises",
+                progress: 47,
+                status: "at-risk",
+                dataSource: "Company reports, Regulatory audits",
+                periodicity: "Annual",
+                responsible: ["Private Sector", "REMA"],
+                orgColors: ["org-private", "org-rema"],
+                kmGbf: "Target 15 (Business Responsibility)",
+                nbsapTarget: "Target 15"
+            },
+            {
+                id: 16,
+                name: "Policy Decisions Informed by M&E",
+                definition: "Decisions at national/district level based on M&E data",
+                tier: "headline",
+                target: "50 decisions",
+                baseline: "15 decisions",
+                midterm: "30 decisions",
+                final: "50 decisions",
+                current: "28 decisions",
+                progress: 52,
+                status: "on-track",
+                dataSource: "Ministry reports, RBIS analysis",
+                periodicity: "Annual",
+                responsible: ["REMA", "Sector Ministries"],
+                orgColors: ["org-rema", "org-ministry"],
+                kmGbf: "Target 20 (Information & Monitoring)",
+                nbsapTarget: "Target 16"
+            },
+            {
+                id: 17,
+                name: "Invasive Species Incidents Recorded",
+                definition: "Number of invasive species detected and reported",
+                tier: "headline",
+                target: "0 new invasives",
+                baseline: "5 incidences",
+                midterm: "2 incidences",
+                final: "0 incidences",
+                current: "3 incidences",
+                progress: 40,
+                status: "behind",
+                dataSource: "Field surveys, Community reports, RBIS",
+                periodicity: "Quarterly",
+                responsible: ["District Authorities", "REMA", "Communities"],
+                orgColors: ["org-district", "org-rema", "org-community"],
+                kmGbf: "Target 6 (Invasive Species)",
+                nbsapTarget: "Target 17"
+            },
+            {
+                id: 18,
+                name: "Biodiversity Funding Mobilized (RWF)",
+                definition: "Total funding mobilized for biodiversity",
+                tier: "component",
+                target: "RWF 10 billion",
+                baseline: "RWF 6 billion",
+                midterm: "RWF 8 billion",
+                final: "RWF 10 billion",
+                current: "RWF 7.2 billion",
+                progress: 53,
+                status: "on-track",
+                dataSource: "Donor & Government reports",
+                periodicity: "Annual",
+                responsible: ["REMA", "MINECOFIN", "Development Partners"],
+                orgColors: ["org-rema", "org-ministry", "org-ngo"],
+                kmGbf: "Target 19 (Finance)",
+                nbsapTarget: "Target 18"
+            },
+            {
+                id: 19,
+                name: "Stakeholders Trained in M&E",
+                definition: "Number of individuals trained in biodiversity monitoring",
+                tier: "component",
+                target: "2,000 stakeholders",
+                baseline: "500 stakeholders",
+                midterm: "1,200 stakeholders",
+                final: "2,000 stakeholders",
+                current: "1,050 stakeholders",
+                progress: 55,
+                status: "on-track",
+                dataSource: "Training records, Workshop attendance logs",
+                periodicity: "Annual",
+                responsible: ["REMA", "Sector Ministries", "NGOs"],
+                orgColors: ["org-rema", "org-ministry", "org-ngo"],
+                kmGbf: "Target 21 (Capacity)",
+                nbsapTarget: "Target 19"
+            },
+            {
+                id: 20,
+                name: "Biodiversity Knowledge Products Produced",
+                definition: "# of reports, maps, policy briefs generated",
+                tier: "headline",
+                target: "50 products",
+                baseline: "20 products",
+                midterm: "35 products",
+                final: "50 products",
+                current: "31 products",
+                progress: 55,
+                status: "on-track",
+                dataSource: "REMA publications, RBIS",
+                periodicity: "Annual",
+                responsible: ["REMA", "Research Institutions"],
+                orgColors: ["org-rema", "org-research"],
+                kmGbf: "Target 21 (Knowledge)",
+                nbsapTarget: "Target 20"
+            },
+            {
+                id: 21,
+                name: "Timely Submission of Biodiversity Reports",
+                definition: "Reports submitted as per national & CBD requirements",
+                tier: "binary",
+                target: "100% compliance",
+                baseline: "70%",
+                midterm: "85%",
+                final: "100%",
+                current: "80%",
+                progress: 67,
+                status: "on-track",
+                dataSource: "Ministry reports, RBIS",
+                periodicity: "Annual",
+                responsible: ["REMA", "Sector Ministries"],
+                orgColors: ["org-rema", "org-ministry"],
+                kmGbf: "Target 20 (Reporting)",
+                nbsapTarget: "Target 21"
+            },
+            {
+                id: 22,
+                name: "Gender & IPLC Participation (%)",
+                definition: "% of women, youth, and IPLCs engaged in M&E and conservation",
+                tier: "headline",
+                target: "50% women & 30% IPLC",
+                baseline: "20% women & 10% IPLC",
+                midterm: "35% women & 20% IPLC",
+                final: "50% women & 30% IPLC",
+                current: "32% women & 18% IPLC",
+                progress: 54,
+                status: "at-risk",
+                dataSource: "Surveys, Community & CBO reports",
+                periodicity: "Annual",
+                responsible: ["District Authorities", "IPLCs", "NGOs"],
+                orgColors: ["org-district", "org-community", "org-ngo"],
+                kmGbf: "Target 22 & 23 (Inclusion)",
+                nbsapTarget: "Target 22"
+            }
+        ];
+
+        // Organization mapping
+        const orgInfo = {
+            "REMA": { name: "Rwanda Environment Management Authority", type: "National Agency", indicators: 18 },
+            "RDB": { name: "Rwanda Development Board", type: "National Agency", indicators: 4 },
+            "RFA": { name: "Rwanda Forestry Authority", type: "National Agency", indicators: 3 },
+            "RAB": { name: "Rwanda Agriculture Board", type: "National Agency", indicators: 1 },
+            "District Authorities": { name: "District Environment Offices", type: "Local Government", indicators: 12 },
+            "Sector Ministries": { name: "Various Sector Ministries", type: "National Government", indicators: 8 },
+            "Communities": { name: "Local Communities & IPLCs", type: "Community", indicators: 9 },
+            "CBOs": { name: "Community-Based Organizations", type: "Community", indicators: 6 },
+            "IPLCs": { name: "Indigenous Peoples & Local Communities", type: "Community", indicators: 4 },
+            "Private Sector": { name: "Private Enterprises", type: "Private", indicators: 3 },
+            "NGOs": { name: "Non-Governmental Organizations", type: "Civil Society", indicators: 5 },
+            "MINECOFIN": { name: "Ministry of Finance", type: "National Government", indicators: 2 },
+            "WASAC": { name: "Water and Sanitation Corporation", type: "Parastatal", indicators: 1 },
+            "LODA": { name: "Local Government Development Agency", type: "National Agency", indicators: 1 },
+            "Conservation NGOs": { name: "Conservation Organizations", type: "Civil Society", indicators: 2 },
+            "Cooperatives": { name: "Community Cooperatives", type: "Community", indicators: 3 },
+            "Agricultural Research Institutes": { name: "Research Institutions", type: "Research", indicators: 1 },
+            "Development Partners": { name: "International Partners", type: "International", indicators: 2 }
+        };
+
+        // Tab switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            const titles = {
+                'dashboard': 'Monitoring Dashboard',
+                'indicators': 'All 22 National Biodiversity Indicators',
+                'data-sources': 'Data Sources Integration',
+                'workflow': 'Data Processing Workflow',
+                'reports': 'Reports & Documentation',
+                'compliance': 'Compliance & Accountability',
+                'stakeholders': 'Stakeholder Management'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+        }
+
+        // Render indicators table
+        function renderIndicatorsTable(filter = 'all') {
+            const tbody = document.getElementById('indicators-table-body');
+            const filtered = filter === 'all' ? indicators : indicators.filter(i => i.tier === filter);
+            
+            tbody.innerHTML = filtered.map(ind => `
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="openModal(${ind.id})">
+                    <td class="p-4 font-bold text-gray-700">${ind.id}</td>
+                    <td class="p-4 font-medium text-gray-800">${ind.name}</td>
+                    <td class="p-4"><span class="indicator-tier tier-${ind.tier}">${ind.tier}</span></td>
+                    <td class="p-4 text-gray-600 text-sm">${ind.target}</td>
+                    <td class="p-4">
+                        <div class="flex flex-wrap gap-1">
+                            ${ind.responsible.map((org, i) => `
+                                <span class="org-badge ${ind.orgColors[i] || 'org-rema'}">${org}</span>
+                            `).join('')}
+                        </div>
+                    </td>
+                    <td class="p-4 text-gray-600 text-sm">${ind.periodicity}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${ind.progress}%"></div>
+                            </div>
+                            <span class="text-sm font-semibold">${ind.progress}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Render organization summary
+        function renderOrgSummary() {
+            const orgCount = {};
+            indicators.forEach(ind => {
+                ind.responsible.forEach(org => {
+                    if (!orgCount[org]) {
+                        orgCount[org] = 0;
+                    }
+                    orgCount[org]++;
+                });
+            });
+
+            const sorted = Object.entries(orgCount).sort((a, b) => b[1] - a[1]).slice(0, 9);
+            
+            const orgSummary = document.getElementById('org-summary');
+            orgSummary.innerHTML = sorted.map(([org, count]) => {
+                const info = orgInfo[org] || { name: org, type: 'Partner' };
+                const colorClass = indicators.find(i => i.responsible.includes(org))?.orgColors[0] || 'org-rema';
+                
+                return `
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="org-badge ${colorClass}">${org}</span>
+                            <span class="text-lg font-bold text-gray-800">${count}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">${info.type}</p>
+                        <p class="text-xs text-gray-500 mt-1">${info.name}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filter functions
+        function filterTier(tier) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white', 'border-blue-600');
+            });
+            event.target.classList.add('active', 'bg-blue-600', 'text-white', 'border-blue-600');
+            renderIndicatorsTable(tier);
+        }
+
+        // Search function
+        document.getElementById('search-indicator').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = indicators.filter(ind => 
+                ind.name.toLowerCase().includes(term) || 
+                ind.definition.toLowerCase().includes(term) ||
+                ind.responsible.some(org => org.toLowerCase().includes(term))
+            );
+            
+            const tbody = document.getElementById('indicators-table-body');
+            tbody.innerHTML = filtered.map(ind => `
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="openModal(${ind.id})">
+                    <td class="p-4 font-bold text-gray-700">${ind.id}</td>
+                    <td class="p-4 font-medium text-gray-800">${ind.name}</td>
+                    <td class="p-4"><span class="indicator-tier tier-${ind.tier}">${ind.tier}</span></td>
+                    <td class="p-4 text-gray-600 text-sm">${ind.target}</td>
+                    <td class="p-4">
+                        <div class="flex flex-wrap gap-1">
+                            ${ind.responsible.map((org, i) => `
+                                <span class="org-badge ${ind.orgColors[i] || 'org-rema'}">${org}</span>
+                            `).join('')}
+                        </div>
+                    </td>
+                    <td class="p-4 text-gray-600 text-sm">${ind.periodicity}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${ind.progress}%"></div>
+                            </div>
+                            <span class="text-sm font-semibold">${ind.progress}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        });
+
+        // Modal functions
+        function openModal(id) {
+            const ind = indicators.find(i => i.id === id);
+            document.getElementById('modal-indicator-title').innerText = `Indicator #${ind.id}: ${ind.name}`;
+            
+            document.getElementById('modal-content').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="p-4 bg-blue-50 rounded-xl">
+                            <h4 class="font-semibold text-blue-800 mb-2">Definition</h4>
+                            <p class="text-sm text-gray-700">${ind.definition}</p>
+                        </div>
+                        
+                        <div class="p-4 bg-green-50 rounded-xl">
+                            <h4 class="font-semibold text-green-800 mb-2">Target (2025-2030)</h4>
+                            <p class="text-sm text-gray-700">${ind.target}</p>
+                        </div>
+                        
+                        <div class="p-4 bg-purple-50 rounded-xl">
+                            <h4 class="font-semibold text-purple-800 mb-2">Tier Classification</h4>
+                            <span class="indicator-tier tier-${ind.tier}">${ind.tier}</span>
+                            <p class="text-xs text-gray-500 mt-2">KM-GBF: ${ind.kmGbf}</p>
+                            <p class="text-xs text-gray-500">NBSAP: ${ind.nbsapTarget}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-amber-50 rounded-xl">
+                            <h4 class="font-semibold text-amber-800 mb-2">Responsible Organizations</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${ind.responsible.map((org, i) => `
+                                    <span class="org-badge ${ind.orgColors[i] || 'org-rema'}">${org}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 bg-gray-50 rounded-xl">
+                            <h4 class="font-semibold text-gray-800 mb-2">Data & Reporting</h4>
+                            <p class="text-sm text-gray-600"><strong>Source:</strong> ${ind.dataSource}</p>
+                            <p class="text-sm text-gray-600 mt-1"><strong>Frequency:</strong> ${ind.periodicity}</p>
+                        </div>
+                        
+                        <div class="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
+                            <h4 class="font-semibold mb-3">Progress Overview</h4>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span>Baseline (2025)</span>
+                                <span class="font-bold">${ind.baseline}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span>Current</span>
+                                <span class="font-bold">${ind.current}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span>Target (2030)</span>
+                                <span class="font-bold">${ind.final}</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="w-full bg-white/30 rounded-full h-3">
+                                    <div class="bg-white h-3 rounded-full" style="width: ${ind.progress}%"></div>
+                                </div>
+                                <p class="text-center mt-2 font-bold">${ind.progress}% Complete</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-6 border-t">
+                    <h4 class="font-semibold text-gray-800 mb-3">Timeline Milestones</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <p class="text-xs text-gray-500 mb-1">Baseline (2025)</p>
+                            <p class="font-bold text-gray-800">${ind.baseline}</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-xl">
+                            <p class="text-xs text-blue-600 mb-1">Midterm (2027)</p>
+                            <p class="font-bold text-blue-800">${ind.midterm}</p>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-xl">
+                            <p class="text-xs text-green-600 mb-1">Final (2030)</p>
+                            <p class="font-bold text-green-800">${ind.final}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('indicator-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('indicator-modal').classList.add('hidden');
+        }
+
+        // Export function
+        function exportIndicators() {
+            alert('Export functionality: This would generate a PDF/Excel report of all 22 indicators with responsible organizations, progress, and targets.');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderIndicatorsTable();
+            renderOrgSummary();
+            
+            // Animate progress bars on load
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 100);
+                });
+            }, 300);
+        });
+
+        // Close modal on outside click
+        document.getElementById('indicator-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
+```
